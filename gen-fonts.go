@@ -6,6 +6,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build ignore
 // +build ignore
 
 package main
@@ -136,15 +137,10 @@ func do(ttfName string, src []byte) error {
 	fmt.Fprintf(b, "// Package %s provides the %q TrueType font\n", pkgName, fontName)
 	fmt.Fprintf(b, "// from the Latin Modern font family.\n")
 	fmt.Fprintf(b, "package %[1]s // import \"github.com/go-fonts/latin-modern/%[1]s\"\n\n", pkgName)
+	fmt.Fprintf(b, "import _ \"embed\"\n")
 	fmt.Fprintf(b, "// TTF is the data for the %q TrueType font.\n", fontName)
-	fmt.Fprintf(b, "var TTF = []byte{")
-	for i, x := range src {
-		if i&15 == 0 {
-			b.WriteByte('\n')
-		}
-		fmt.Fprintf(b, "%#02x,", x)
-	}
-	fmt.Fprintf(b, "\n}\n")
+	fmt.Fprintf(b, "//\n//go:embed %s\n", ttfName)
+	fmt.Fprintf(b, "var TTF  []byte\n")
 
 	dst, err := format.Source(b.Bytes())
 	if err != nil {
@@ -154,6 +150,11 @@ func do(ttfName string, src []byte) error {
 	err = ioutil.WriteFile(filepath.Join(pkgName, "data.go"), dst, 0666)
 	if err != nil {
 		return fmt.Errorf("could not write package source file: %w", err)
+	}
+
+	err = ioutil.WriteFile(filepath.Join(pkgName, ttfName), src, 0666)
+	if err != nil {
+		return fmt.Errorf("could not write package TTF file: %w", err)
 	}
 
 	return nil
